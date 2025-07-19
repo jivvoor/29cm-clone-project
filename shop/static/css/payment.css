@@ -1,0 +1,46 @@
+/* 전체 컨테이너 스타일 */
+.payment-methods {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+/* 버튼 컨테이너 */
+.button-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+/* 버튼 스타일 */
+.payment-button {
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.payment-button:hover {
+    background-color: #f4f4f4;
+    border-color: #aaa;
+}
+
+/* 특정 버튼 스타일 */
+.toss { background-color: #0074ff; color: white; }
+.kakao { background-color: #f7e600; color: black; }
+.card { background-color: #ddd; color: black; }
+.payco { background-color: #ff4b3a; color: white; }
+.kbpay { background-color: #005baa; color: white; }
+.samsungpay { background-color: #1428a0; color: white; }
+.naverpay { background-color: #03c75a; color: white; }
+.ssg { background-color: #6e2c92; color: white; }
+.bank { background-color: #ff8c00; color: white; }
+.phone { background-color: #8b4513; color: white; }

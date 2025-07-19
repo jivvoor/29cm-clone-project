@@ -1,0 +1,19 @@
+<form action="{% url 'qna:edit' qna.pk %}" method="POST" onsubmit="submitEditForm(event, {{ qna.pk }})">
+    {% csrf_token %}
+    <label for="qnacate">문의내용</label>
+    <select id="qnacate" name="Qnacategory">
+        {% for qnacate in QnaCategories %}
+        <option value="{{ qnacate.pk }}" {% if qnacate.pk == qna.category.pk %}selected{% endif %}>
+            {{ qnacate.name }}
+        </option>
+        {% endfor %}
+    </select>
+    <label for="title">제목</label>
+    <input id="title" type="text" name="title" value="{{ qna.title }}">
+    <label for="content">내용</label>
+    <textarea name="content" id="content" cols="30" rows="10">{{ qna.content }}</textarea>
+    <label>
+        <input type="checkbox" name="is_private" {% if qna.is_private %}checked{% endif %}> 비밀글로 설정
+    </label>
+    <input type="submit" value="Update!">
+</form>

@@ -1,0 +1,98 @@
+<!-- users/user_profile.html -->
+<h1>{{ user.username }}님의 페이지</h1>
+
+{% if user.superhost %}
+    <p>이 사용자는 Superhost입니다.</p>
+{% endif %}
+
+<h2>{{ user.username }}님이 작성한 모든 제품</h2>
+
+<!-- 필터링 폼 -->
+<form method="get" action="{% url 'users:user_profile' user.username %}">
+    <!-- 카테고리 필터링 -->
+    <label for="category">카테고리:</label>
+    <select id="category" name="category">
+        <option value="">모든 카테고리</option>
+        {% for category in categories %}
+            <option value="{{ category.slug }}" {% if selected_category == category.slug %}selected{% endif %}>
+                {{ category.name }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <!-- 색상 필터링 -->
+    <label for="color">색상:</label>
+    <select id="color" name="color">
+        <option value="">모든 색상</option>
+        {% for color in colors %}
+            <option value="{{ color.slug }}" {% if selected_color == color.slug %}selected{% endif %}>
+                {{ color.name }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <!-- 가격 범위 필터링 -->
+    <label for="price_lower">최소 가격:</label>
+    <input type="number" id="price_lower" name="PriceLower" value="{{ price_lower_range }}" placeholder="최소 가격">
+
+    <label for="price_upper">최대 가격:</label>
+    <input type="number" id="price_upper" name="PriceUpper" value="{{ price_upper_range }}" placeholder="최대 가격">
+
+    <!-- 서브카테고리와 하위 카테고리 선택 옵션을 유지하기 위해 히든 필드 추가 -->
+    {% if selected_subcategory %}
+        <input type="hidden" name="subcategory" value="{{ selected_subcategory }}">
+    {% endif %}
+    {% if selected_nested_subcategory %}
+        <input type="hidden" name="nested_subcategory" value="{{ selected_nested_subcategory }}">
+    {% endif %}
+
+    <!-- 필터링 버튼 -->
+    <button type="submit">필터 적용</button>
+</form>
+
+<!-- 필터링된 제품 목록 -->
+<ul>
+    {% for product in products %}
+        <li>
+            <a href="{% url 'shop:product_detail' product.id %}">{{ product.name }} - {{ product.price }}원</a>
+        </li>
+    {% empty %}
+        <li>조건에 맞는 제품이 없습니다.</li>
+    {% endfor %}
+</ul>
+
+<hr>
+
+<!-- 카테고리별 필터링 옵션 -->
+<h3>카테고리 필터링</h3>
+<ul>
+    {% for category in categories %}
+        <li>
+            <a href="{% url 'users:user_profile' user.username %}?category={{ category.slug }}">
+                {{ category.name }}
+            </a>
+            {% if category.subcategories.exists %}
+                <ul>
+                    {% for subcategory in category.subcategories.all %}
+                        <li>
+                            <a href="{% url 'users:user_profile' user.username %}?category={{ category.slug }}&subcategory={{ subcategory.slug }}">
+                                {{ subcategory.name }}
+                            </a>
+                            {% if subcategory.nested_subcategories.exists %}
+                                <ul>
+                                    {% for nested_subcategory in subcategory.nested_subcategories.all %}
+                                        <li>
+                                            <a href="{% url 'users:user_profile' user.username %}?category={{ category.slug }}&subcategory={{ subcategory.slug }}&nested_subcategory={{ nested_subcategory.slug }}">
+                                                {{ nested_subcategory.name }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>

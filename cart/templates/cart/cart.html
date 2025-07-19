@@ -1,0 +1,74 @@
+{% extends "shop/base.html" %}
+{% load static %}
+        <link rel="stylesheet" href="{% static 'css/cart.css' %}">
+{% block page_title %}
+    {{product.p_name}}
+{% endblock page_title %}
+{% block content %}
+<div class="container">
+    <form method="post">
+        {% csrf_token %}
+        <table>
+            <thead>
+                <tr>
+                    <th>선택</th>
+                    <th>상품정보</th>
+                    <th>수량</th>
+                    <th>주문 금액</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart_items %}
+                <td><input type="checkbox" name="selected_items" value="{{ item.id }}"></td>
+                <td style="display: flex; align-items: center; gap: 10px;">
+                    <img src="{{ item.product.head_image.url }}" alt="Product Image" style="width: 80px; height: 80px; object-fit: cover;">
+                    <div>
+                        <div style="font-weight: bold;">{{ item.product.name }}</div>
+                        <div style="color: #777;">옵션: [사이즈]{{ item.product.size }}</div>
+                    </div>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <button type="button" onclick="updateCartItem({{ item.id }}, {{ item.quantity }} - 1)">-</button>
+                        <span style="font-weight: bold;">{{ item.quantity }}</span>
+                        <button type="button" onclick="updateCartItem({{ item.id }}, {{ item.quantity }} + 1)">+</button>
+                    </div>
+                </td>
+                <td style="text-align: right; font-weight: bold;">
+                    {{ item.sub_total }}원
+                </td>
+            </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <!-- 선택 항목 삭제 -->
+        <button type="submit" formaction="{% url 'cart:delete_selected_items' %}" class="btn btn-danger">
+            선택 항목 삭제
+        </button>
+        <!-- Checkout -->
+        <button type="submit" formaction="{% url 'shop:checkout_selected' %}" class="btn btn-primary">
+            Checkout
+        </button>
+    </form>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    function updateCartItem(cartItemId, quantity) {
+        if (quantity < 1) {
+            alert("수량은 1 이상이어야 합니다.");
+            return;
+        }
+        $.post("{% url 'cart:update_quantity' %}", {
+            csrfmiddlewaretoken: "{{ csrf_token }}",
+            cart_item_id: cartItemId,
+            quantity: quantity,
+        })
+        .done(function (response) {
+            location.reload();  // 페이지 새로고침
+        })
+        .fail(function () {
+            alert("수량 업데이트 실패!");
+        });
+    }
+</script>
+    {% endblock content %}

@@ -1,0 +1,331 @@
+{% extends "shop/base.html" %}
+{% block page_title %}
+    {{product.p_name}}
+{% endblock page_title %}
+{% block content %}
+<h2>
+    By :
+    <a href="{% url 'users:user_profile' product.host.username %}">{{ product.host.username }}</a>
+    {% if product.host.superhost %}
+        (superhost)
+    {% endif %}
+</h2>
+<div class="product-detail-container">
+    <!-- 왼쪽: 이미지 -->
+    <div class="product-image">
+        <img src="{{ product.head_image.url }}" alt="{{ product.name }}" class="product-head-image">
+    </div>
+    
+    <!-- 오른쪽: 상품 정보 -->
+    <div class="product-info">
+        <h1>{{ product.name }}</h1>
+        <p class="price">{{ product.price }}원</p>
+        <p class="description">{{ product.description }}</p>
+        
+        <!-- 좋아요 버튼과 수 표시 -->
+        <div class="like-section">
+            <button id="like-btn" onclick="toggleLike({{ product.id }})" class="like-button">
+                {% if user_has_liked %}❤️{% else %}🤍{% endif %}
+            </button>
+            <span id="like-count">{{ like_count }}</span>명이 좋아합니다
+        </div>
+        
+        <form method="post" action="{% url 'shop:add_to_cart' product.id %}">
+                {% csrf_token %}
+        
+                <!-- 사이즈 선택 -->
+                <label for="sizecategory">사이즈:</label>
+                <select name="sizecategory" id="sizecategory" required>
+                    {% for size in sizes %}
+                        <option value="{{ size.id }}">{{ size.name }}</option>
+                    {% endfor %}
+                </select>
+        
+                <!-- 색상 선택 -->
+                <label for="colorcategory">색상:</label>
+                <select name="colorcategory" id="colorcategory" required>
+                    {% for color in colors %}
+                        <option value="{{ color.id }}">{{ color.name }}</option>
+                    {% endfor %}
+                </select>
+        
+                <!-- 수량 입력 -->
+                <label for="quantity">수량:</label>
+                <input type="number" name="quantity" value="1" min="1" id="quantity" required />
+        
+                <!-- 장바구니 담기 버튼 -->
+                <button type="submit" name="action" value="add_to_cart">장바구니 담기</button>
+        
+                <!-- 바로 구매하기 버튼 -->
+                <button type="submit" formaction="{% url 'shop:direct_purchase' product.id %}" class="btn btn-success">바로 구매하기</button>
+            </form>
+        </div>
+        
+        <script>
+            var IMP = window.IMP; 
+            IMP.init("imp71874747"); 
+    
+            function requestPay() {
+              IMP.request_pay({
+                pg: "html5_inicis",
+                pay_method: "card",
+                merchant_uid: "ORD20180131-0000011",   // 주문번호
+                name: "{{ product.name }}",
+                amount: "{{ product.price }}",                         // 숫자 타입
+                buyer_email: "gildong@gmail.com",
+                buyer_name: "{{ user.last_name }}",
+                buyer_tel: "{{ user.tel}}",
+                buyer_addr: "{{ user.address }}",
+                buyer_postcode: "{{ user.postcode }}"
+              }, function (rsp) { // callback
+                //rsp.imp_uid 값으로 결제 단건조회 API를 호출하여 결제결과를 판단합니다.
+                if ( rsp.success ) {
+                    jquery.ajax({
+                        url:"/payments/complete/",
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            imp_uid : rsp.imp_uid
+                        }
+                    }).done(function(data) {
+                        //[2] 서버에서 REST API로 결제정보확인 및 서비스루틴이 정상적인 경우
+                        alert("ajax done");               
+                        console.log("ajax done");
+                        if ( everythings_fine ) {
+                         var msg = '결제가 완료되었습니다.';
+                         msg += '\n고유ID : ' + rsp.imp_uid;
+                         msg += '\n상점 거래ID : ' + rsp.merchant_uid;
+                         msg += '\결제 금액 : ' + rsp.paid_amount;
+                         msg += '카드 승인번호 : ' + rsp.apply_num;
+    
+                         alert(msg);
+                         console.log(msg);
+                        } else {
+                         //[3] 아직 제대로 결제가 되지 않았습니다.
+                         //[4] 결제된 금액이 요청한 금액과 달라 결제를 자동취소처리하였습니다.
+                         var msg = '결제에 실패하였습니다.';
+                         msg += '에러내용 : ' + rsp.error_msg;
+                 
+                         alert(msg);
+                         console.log(msg);
+                        }
+            }).fail(function () {
+    
+                alert("ajax fail");
+    
+                console.log("ajax fail");
+    
+            }).always(function () {
+    
+                alert("ajax always");
+    
+                console.log("ajax always");
+              });
+            } else {
+    
+                var msg = '결제에 실패하였습니다.';
+    
+                msg += '에러내용 : ' + rsp.error_msg;
+    
+    
+                alert(msg);
+            }
+        });
+    }
+    
+          </script>
+    
+
+    </div>
+</div>
+
+<script>
+    function toggleLike(productId) {
+        const likeButton = document.getElementById('like-btn');
+        const likeCountSpan = document.getElementById('like-count');
+
+        fetch(`/shop/product/${productId}/toggle_like/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',  // CSRF 토큰 설정
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.liked) {
+                likeButton.innerHTML = '❤️';
+            } else {
+                likeButton.innerHTML = '🤍';
+            }
+            likeCountSpan.innerText = data.like_count;
+        })
+        .catch(error => console.error('Error:', error));
+    }
+</script>
+    <div class="product-qna">
+        <input type="hidden" id="productId" value="{{ product.id }}">
+        {% include 'qna_index.html' with qnas=qnas qna_categories=qna_categories %}  <!-- qna_categories 전달 -->
+    </div>
+
+    <!-- 리뷰 리스트 출력 -->
+    <div class="product-reviews">
+        <h3>리뷰</h3>
+        {% if reviews %}
+            <ul class="review-list">
+                {% for review in reviews %}
+                    <li class="review-item">
+                        <div class="review-header">
+                            <span class="review-user">{{ review.user.username }}</span>
+                            <span class="review-rating">{{ review.rating }}점</span>
+                            <span class="review-date">{{ review.created_at|date:"Y-m-d H:i" }}</span>
+                        </div>
+                        <div class="review-content">{{ review.content }}</div>
+                        {% if review.images.all %}
+                            <div class="review-images">
+                                {% for img in review.images.all %}
+                                    <img src="{{ img.image.url }}" alt="리뷰 이미지" style="max-width:100px; max-height:100px; margin:4px;">
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="no-reviews">아직 작성된 리뷰가 없습니다.</div>
+        {% endif %}
+    </div>
+
+<style>
+    .product-detail-container {
+        display: flex;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        gap: 40px;
+    }
+
+    .product-image {
+        flex: 1;
+        max-width: 500px;
+    }
+
+    .product-image img {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
+
+    .product-info {
+        flex: 1;
+        padding: 20px;
+    }
+
+    .product-info h1 {
+        margin-bottom: 15px;
+        color: #333;
+    }
+
+    .price {
+        font-size: 24px;
+        font-weight: bold;
+        color: #e74c3c;
+        margin-bottom: 15px;
+    }
+
+    .description {
+        color: #666;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    .like-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        padding: 10px 0;
+    }
+
+    .like-button {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 50%;
+        transition: transform 0.2s;
+    }
+
+    .like-button:hover {
+        transform: scale(1.1);
+    }
+
+    #like-count {
+        font-weight: bold;
+        color: #e74c3c;
+    }
+
+    .product-reviews {
+        margin-top: 40px;
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .product-reviews h3 {
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .review-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .review-item {
+        background: white;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+    }
+
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        font-size: 14px;
+        color: #666;
+    }
+
+    .review-user {
+        font-weight: bold;
+        color: #333;
+    }
+
+    .review-rating {
+        color: #ff6b35;
+        font-weight: bold;
+    }
+
+    .review-content {
+        line-height: 1.6;
+        margin-bottom: 10px;
+    }
+
+    .review-images {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+
+    .no-reviews {
+        text-align: center;
+        color: #666;
+        padding: 20px;
+    }
+</style>    
+    {% endblock content %}

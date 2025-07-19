@@ -1,0 +1,309 @@
+{% extends 'users/base_mypage.html' %}
+
+{% block mypage_content %}
+<div class="shopping-info-container">
+    <h2>주문 내역</h2>
+    {% if order_data %}
+        <div class="orders-list">
+            {% for order_info in order_data %}
+                <div class="order-summary">
+                    <div class="order-header">
+                        <span class="order-date">{{ order_info.order.created_at|date:"Y-m-d H:i" }}</span>
+                        <button class="order-detail-toggle" onclick="toggleOrderDetail({{ order_info.order.id }})">주문 상세</button>
+                    </div>
+                    <div class="order-detail" id="order-detail-{{ order_info.order.id }}" style="display: none;">
+                        <div class="order-products">
+                            {% for item in order_info.products %}
+                                <div class="order-product">
+                                    {% if item.product.head_image %}
+                                        <img src="{{ item.product.head_image.url }}" alt="{{ item.product.name }}" class="order-product-img">
+                                    {% else %}
+                                        <div class="order-product-img no-image">이미지 없음</div>
+                                    {% endif %}
+                                    <div class="order-product-info">
+                                        <div class="order-product-name">{{ item.product.name }}</div>
+                                        <div class="order-product-brand">브랜드: {{ item.product.host.username }}</div>
+                                        <div class="order-product-color">컬러: {{ item.color|default:'-' }}</div>
+                                        <div class="order-product-price">가격: {{ item.price|floatformat:0 }}원</div>
+                                        <div class="order-product-qty">수량: {{ item.quantity }}</div>
+                                    </div>
+                                </div>
+                                <div class="order-extra">
+                                    <div>배송비: <span class="free-shipping">무료배송</span></div>
+                                    <div>진행상태: <span class="order-status status-{{ order_info.order.status }}">{{ order_info.order.get_status_display }}</span></div>
+                                    {% if order_info.order.status == 'delivered' %}
+                                        <form method="post" action="{% url 'shop:order_confirm' order_info.order.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="review-btn">구매확정</button>
+                                        </form>
+                                    {% elif order_info.order.status == 'confirmed' %}
+                                        <button class="review-btn" onclick="openReviewPopup({{ item.product.id }})">리뷰 작성</button>
+                                    {% endif %}
+                                    {% for item in order_info.products %}
+                                    {{ item.product }} / {{ item.product.id }}
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-orders">
+            <p>주문 내역이 없습니다.</p>
+            <a href="{% url 'shop:home' %}" class="btn btn-primary">쇼핑하러 가기</a>
+        </div>
+    {% endif %}
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<!-- 리뷰 작성 팝업 -->
+<div id="review-popup" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:white; padding:30px; border-radius:10px; max-width:400px; margin:auto; position:relative;">
+        <form id="review-form" enctype="multipart/form-data">
+            <input type="hidden" name="product_id" id="review-product-id">
+            <div style="margin-bottom:15px;">
+                <label>상품은 어떠셨나요?</label>
+                <select name="rating" id="rating-value" required>
+                    <option value="5.0">★★★★★ (5.0)</option>
+                    <option value="4.5">★★★★☆ (4.5)</option>
+                    <option value="4.0">★★★★ (4.0)</option>
+                    <option value="3.5">★★★☆ (3.5)</option>
+                    <option value="3.0">★★★ (3.0)</option>
+                    <option value="2.5">★★☆ (2.5)</option>
+                    <option value="2.0">★★ (2.0)</option>
+                    <option value="1.5">★☆ (1.5)</option>
+                    <option value="1.0">★ (1.0)</option>
+                    <option value="0.5">☆ (0.5)</option>
+                </select>
+            </div>
+            <div style="margin-bottom:15px;">
+                <label>사진 업로드:</label>
+                <input type="file" name="images" id="review-images" multiple>
+            </div>
+            <div style="margin-bottom:15px;">
+                <label>후기 내용:</label>
+                <textarea name="content" required style="width:100%; height:80px;"></textarea>
+            </div>
+            <button type="submit" class="review-btn">리뷰 등록</button>
+            <button type="button" onclick="closeReviewPopup()" class="review-btn" style="background:#ccc; color:#222; margin-left:10px;">취소</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleOrderDetail(orderId) {
+    const detail = document.getElementById('order-detail-' + orderId);
+    if (detail.style.display === 'none') {
+        detail.style.display = 'block';
+    } else {
+        detail.style.display = 'none';
+    }
+}
+
+function openReviewPopup(productId) {
+    $('#review-product-id').val(productId);
+    $('#review-popup').css('display', 'flex');
+    console.log('openReviewPopup:', productId);
+    // 드롭다운 별점이므로 별점 초기화 불필요
+}
+
+function closeReviewPopup() {
+    $('#review-popup').hide();
+    $('#review-form')[0].reset();
+    // rateYo 관련 destroy 코드 완전히 삭제
+}
+
+$('#review-form').on('submit', function(e) {
+    e.preventDefault();
+    var formData = new FormData(this);
+    var productId = $('#review-product-id').val();
+    if (!productId) {
+        alert('상품 정보가 올바르지 않습니다.');
+        return;
+    }
+    $.ajax({
+        url: '/review/create/' + productId + '/',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {'X-CSRFToken': '{{ csrf_token }}'},
+        success: function(response) {
+            closeReviewPopup();
+            alert('리뷰가 작성되었습니다.');
+            // TODO: 리뷰 리스트 새로고침 등 추가 가능
+        },
+        error: function(xhr) {
+            alert('리뷰 작성에 실패했습니다.');
+        }
+    });
+});
+</script>
+
+<style>
+.shopping-info-container {
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+.order-summary {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: #fafbfc;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: #f5f7fa;
+    border-bottom: 1px solid #e0e0e0;
+}
+.order-date {
+    font-weight: bold;
+    color: #333;
+}
+.order-detail-toggle {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 18px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.order-detail-toggle:hover {
+    background: #0056b3;
+}
+.order-detail {
+    padding: 20px 24px;
+    background: white;
+}
+.order-products {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+.order-product {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 12px;
+}
+.order-product:last-child {
+    border-bottom: none;
+}
+.order-product-img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+    background: #f8f8f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #aaa;
+}
+.order-product-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.order-product-name {
+    font-weight: bold;
+    font-size: 16px;
+    color: #222;
+}
+.order-product-brand {
+    color: #666;
+    font-size: 14px;
+}
+.order-product-color {
+    color: #888;
+    font-size: 14px;
+}
+.order-product-price {
+    color: #007bff;
+    font-size: 15px;
+    font-weight: bold;
+}
+.order-product-qty {
+    color: #444;
+    font-size: 14px;
+}
+.order-extra {
+    display: flex;
+    gap: 30px;
+    margin-top: 10px;
+    align-items: center;
+}
+.free-shipping {
+    color: #28a745;
+    font-weight: bold;
+}
+.order-status {
+    font-weight: bold;
+}
+.status-paid { color: #28a745; }
+.status-requested { color: #ffc107; }
+.status-failed_payment { color: #dc3545; }
+.status-prepared_product { color: #17a2b8; }
+.status-shipped { color: #6f42c1; }
+.status-delivered { color: #20c997; }
+.status-cancelled { color: #6c757d; }
+.review-btn {
+    background: #ff9800;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 7px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.review-btn:hover {
+    background: #e65100;
+}
+.no-orders {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+.no-orders p {
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+.btn-primary:hover {
+    background-color: #0056b3;
+    color: white;
+}
+</style>
+
+{% endblock mypage_content %} 

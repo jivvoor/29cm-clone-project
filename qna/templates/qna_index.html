@@ -1,0 +1,360 @@
+{% block body %}
+
+<h1>상품 Q&A ({{ total_qna_count }})</h1>
+
+<!-- 카테고리 버튼 -->
+<div class="category-buttons">
+    <a href="?category_id=" class="{% if not selected_category_id %}selected{% endif %}">ALL</a>
+    {% for category in qna_categories %}
+        <a href="?category_id={{ category.id }}" 
+           class="{% if category.id == selected_category_id %}selected{% endif %}">
+            {{ category.qna_name }} ({{ category.qna_count }})
+        </a>
+    {% endfor %}
+</div>
+
+<style>
+    .category-buttons a {
+        margin-right: 10px;
+        text-decoration: none;
+        color: black;
+    }
+    .category-buttons a.selected {
+        font-weight: bold;
+        color: blue;
+    }
+</style>
+
+<!-- New QnA 링크 -->
+<a href="javascript:void(0);" onclick="toggleForm()">New QnA</a>
+<script>
+    function toggleForm() {
+        const productId = document.getElementById("productId").value;
+        if (!productId) {
+            alert("product_id가 없습니다.");
+            return;
+        }
+
+        // 새로운 QnA 작성 페이지로 이동
+        window.location.href = `/qna/new/?product_id=${productId}`;
+    }
+</script>
+
+
+<!-- New QnA 작성 폼을 포함하고 초기 상태는 숨김 -->
+<div id="new-qna-form" style="display: none; margin-top: 20px;">
+    <form action="{% url 'qna:new' %}?product_id={{ product.id }}" method="POST">  <!-- product_id를 쿼리 파라미터로 전달 -->
+        {% csrf_token %}
+        <label for="qnacate">문의내용</label>
+        <select id="qnacate" name="Qnacategory">
+            {% for qnacate in qna_categories %}
+                <option value="{{ qnacate.pk }}">{{ qnacate.qna_name }}</option>
+            {% endfor %}
+        </select>
+        <label for="title">제목</label>
+        <input id="title" type="text" name="title">
+        <label for="content">내용</label>
+        <textarea name="content" id="content" cols="30" rows="10"></textarea>
+        <label>
+            <input type="checkbox" name="is_private"> 비밀글로 설정
+        </label>
+        <input type="submit" value="Create!">
+    </form>
+</div>
+
+<!-- JavaScript로 폼 토글링 기능 추가 -->
+<script>
+    function toggleForm() {
+        var form = document.getElementById("new-qna-form");
+        form.style.display = (form.style.display === "none") ? "block" : "none";
+    }
+
+    // JavaScript 함수: QnA 상세 표시/숨기기
+    function toggleDetail(qnaId) {
+        var detailDiv = document.getElementById(`qna-detail-${qnaId}`);
+        
+        if (detailDiv.style.display === "none") {
+            // 상세 정보가 숨겨져 있을 때, 서버에서 데이터를 가져옴
+            fetch(`/qna/${qnaId}/detail/`)
+                .then(response => response.text())
+                .then(data => {
+                    detailDiv.innerHTML = data;  // 서버에서 가져온 HTML을 넣음
+                    detailDiv.style.display = "block";
+                })
+                .catch(error => console.error('Error:', error));
+        } else {
+            // 상세 정보가 표시 중일 때, 숨김
+            detailDiv.style.display = "none";
+        }
+    }
+</script>
+
+
+<!-- QnA 목록 -->
+<ul>
+    {% for qna in qnas %}
+        <li id="qna-item-{{ qna.pk }}">
+            <!-- 질문 제목 클릭 시 상세보기 토글 -->
+            <a href="javascript:void(0);" onclick="toggleDetail({{ qna.pk }})">
+                [{{ qna.category.qna_name }}]<br> {% if qna.is_private %}비밀글입니다.{% else %}{{ qna.title }}{% endif %}, {{ qna.writer.name }}, {{ qna.created_at }}
+            </a>
+
+            <button style="background-color: #375FFF; color: white; border: none; padding: 5px 10px; margin-top: 5px; border-radius: 2px;">
+                {% if qna.reply %}yes{% else %}no{% endif %}
+            </button>
+
+            <!-- 질문 상세 내용이 표시될 div (초기 상태는 숨김) -->
+            <div id="qna-detail-{{ qna.pk }}" style="display: none; margin-top: 10px;"></div>
+            <div id="reply-form-{{ qna.pk }}" style="display: none; margin-top: 20px;">
+                <form onsubmit="submitReplyForm(event, {{ qna.pk }})">
+                    {% csrf_token %}
+                    <label for="reply-content">답변 내용:</label>
+                    <textarea id="reply-content" name="content" cols="30" rows="5"></textarea>
+                    <input type="submit" value="등록">
+                </form>
+            </div>
+            <br>
+            <!-- 수정 폼이 표시될 div (초기 상태는 숨김) -->
+            <div id="qna-edit-form-{{ qna.pk }}" style="display: none; margin-top: 10px;"></div>
+        
+        </li>
+    {% empty %}
+        <li>해당 카테고리에 게시물이 없습니다.</li>
+    {% endfor %}
+</ul>
+
+<script>
+    function toggleDetail(pk) {
+        const detailDiv = document.getElementById(`qna-detail-${pk}`);
+        
+        // 상세보기가 이미 열려있다면 닫음
+        if (detailDiv.style.display === "block") {
+            detailDiv.style.display = "none";
+            detailDiv.innerHTML = ""; // 내용을 비움
+        } else {
+            // Ajax 요청으로 qna_detail.html 가져오기
+            fetch(`/qna/${pk}/detail/`)
+                .then(response => response.text())
+                .then(html => {
+                    detailDiv.innerHTML = html;
+                    detailDiv.style.display = "block";
+                })
+                .catch(error => console.error("Error loading details:", error));
+        }
+    }
+</script>
+
+<script>
+    function deleteQna(pk) {
+        if (confirm("정말 삭제하시겠습니까?")) {
+            fetch(`/qna/${pk}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            })
+            .then(response => {
+                if (response.ok) {
+                    // 삭제된 QnA 항목을 화면에서 제거
+                    document.getElementById(`qna-item-${pk}`).remove();
+                } else {
+                    alert("삭제에 실패했습니다.");
+                }
+            })
+            .catch(error => console.error("Error deleting QnA:", error));
+        }
+    }
+        
+        // CSRF 토큰을 가져오는 함수
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+    
+<script>
+    function loadEditForm(pk) {
+        const editFormDiv = document.getElementById(`qna-edit-form-${pk}`);
+        
+        // Toggle 수정 폼 표시
+        if (editFormDiv.style.display === "none") {
+            fetch(`/qna/${pk}/edit/`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'  // AJAX 요청 표시
+                }
+            })
+            .then(response => response.text())  // HTML 응답을 텍스트로 직접 받기
+            .then(html => {
+                editFormDiv.innerHTML = html;  // 수정 폼 HTML 삽입
+                editFormDiv.style.display = "block";  // 수정 폼 표시
+            })
+            .catch(error => console.error("수정 폼 로드 중 오류:", error));
+        } else {
+            editFormDiv.style.display = "none";
+            editFormDiv.innerHTML = "";  // 폼 내용 초기화
+        }
+    }
+</script>
+        
+<script>
+    function submitEditForm(event, pk) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+
+        fetch(`/qna/${pk}/edit/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),  // CSRF 토큰 추가
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("수정에 실패했습니다.");
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                location.reload();  // 성공 시 페이지 새로고침
+            } else {
+                alert("수정에 실패했습니다.");
+            }
+        })
+        .catch(error => console.error("수정 폼 제출 중 오류:", error));
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
+<script>
+    // 답변 폼 보이기/숨기기 함수
+    function toggleReplyForm(qnaId) {
+        var form = document.getElementById(`reply-form-${qnaId}`);
+        form.style.display = (form.style.display === "none") ? "block" : "none";
+    }
+
+    // AJAX를 사용해 답변 폼 제출하기
+    function submitReplyForm(event, qnaId) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+
+        fetch(`/qna/${qnaId}/reply/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),  // CSRF 토큰
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // 답변 등록 후 페이지 새로고침
+            } else {
+                alert("답변 등록에 실패했습니다.");
+            }
+        })
+        .catch(error => console.error("답변 제출 중 오류:", error));
+    }
+
+    // CSRF 토큰 가져오기 함수
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+
+    function toggleReplyEditForm(qnaId) {
+        const editForm = document.getElementById(`reply-edit-form-${qnaId}`);
+        if (editForm.style.display === "none") {
+            editForm.style.display = "block";  // 수정 폼 표시
+        } else {
+            editForm.style.display = "none";  // 수정 폼 숨기기
+        }
+    }
+    
+    
+    // 답변 수정 폼 제출 (AJAX)
+    function submitReplyEditForm(event, qnaId) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const newContent = formData.get('content');
+    
+        fetch(`/qna/${qnaId}/reply/edit/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),  // CSRF 토큰
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+                
+            } else {
+                alert("답변 수정에 실패했습니다.");
+            }
+        })
+        .catch(error => console.error("답변 수정 중 오류:", error));
+    }
+    
+    // 답변 삭제 (AJAX)
+    function deleteReply(qnaId) {
+        if (confirm("정말 삭제하시겠습니까?")) {
+            fetch(`/qna/${qnaId}/reply/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById(`reply-${qnaId}`).remove();  // 답변 삭제
+                } else {
+                    alert("답변 삭제에 실패했습니다.");
+                }
+            })
+            .catch(error => console.error("답변 삭제 중 오류:", error));
+        }
+    }
+</script>
+
+{% endblock %}

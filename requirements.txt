@@ -1,0 +1,15 @@
+django==4.1.7
+django-bootstrap5==22.2
+django-environ==0.9.0
+django-widget-tweaks
+iamport-rest-client
+pillow
+requests
+sorl-thumbnail
+
+
+
+
+django-debug-toolbar==3.8.1
+black==24.3.0
+djlint==1.19.16

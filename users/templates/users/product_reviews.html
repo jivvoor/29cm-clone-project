@@ -1,0 +1,114 @@
+{% extends 'users/base_mypage.html' %}
+
+{% block mypage_content %}
+<div class="my-reviews-container">
+    <h2>내가 작성한 리뷰</h2>
+    
+    {% if reviews %}
+        <div class="reviews-list">
+            {% for review in reviews %}
+                <div class="review-item">
+                    <div class="review-header">
+                        <h3 class="product-name">
+                            <a href="{% url 'shop:product_detail' review.product.id %}">
+                                {{ review.product.name }}
+                            </a>
+                        </h3>
+                        <div class="review-meta">
+                            <span class="rating">{{ review.rating }}점</span>
+                            <span class="date">{{ review.created_at|date:"Y-m-d H:i" }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="review-content">
+                        {{ review.content }}
+                    </div>
+                    
+                    {% if review.images.all %}
+                        <div class="review-images">
+                            {% for img in review.images.all %}
+                                <img src="{{ img.image.url }}" alt="리뷰 이미지" class="review-image">
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-reviews">
+            <p>아직 작성한 리뷰가 없습니다.</p>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.my-reviews-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.review-item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background-color: #fff;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.product-name a {
+    color: #333;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.product-name a:hover {
+    color: #007bff;
+}
+
+.review-meta {
+    display: flex;
+    gap: 15px;
+    color: #666;
+    font-size: 14px;
+}
+
+.rating {
+    font-weight: bold;
+    color: #ff6b35;
+}
+
+.review-content {
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.review-images {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.review-image {
+    max-width: 100px;
+    max-height: 100px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.no-reviews {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+</style>
+{% endblock %}
