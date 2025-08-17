@@ -18,67 +18,67 @@
                 <div class="form-group">
                     <label for="name">상품명</label>
                     <input value="{{ name }}" id="name" name="name" placeholder="상품명으로 검색" type="text" class="form-control">
-                </div>
+        </div>
 
                 <div class="form-group">
                     <label for="category">카테고리</label>
                     <select id="category" name="category" class="form-control">
                         <option value="0" {% if s_category == 0 %}selected{% endif %}>전체 카테고리</option>
-                        {% for category in categories %}
-                            <option value="{{ category.pk }}" {% if s_category == category.pk %}selected{% endif %}>
-                                {{ category.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
+                {% for category in categories %}
+                    <option value="{{ category.pk }}" {% if s_category == category.pk %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
                 </div>
-            </div>
+        </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label for="color">색상</label>
                     <select id="color" name="ColorCategory" class="form-control">
                         <option value="0">전체 색상</option>
-                        {% for color in ColorCategories %}
-                            <option value="{{ color.pk }}" {% if color.pk in s_ColorCategories %}selected{% endif %}>
-                                {{ color.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                {% for color in ColorCategories %}
+                    <option value="{{ color.pk }}" {% if color.pk in s_ColorCategories %}selected{% endif %}>
+                        {{ color.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
 
                 <div class="form-group">
                     <label for="price">최대 가격</label>
                     <input value="{{ price }}" id="price" name="price" type="number" placeholder="최대 가격" class="form-control">
                 </div>
-            </div>
+        </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label for="host">판매자</label>
                     <select id="host" name="hosts" class="form-control">
                         <option value="">전체 판매자</option>
-                        {% for host in hosts %}
-                            <option value="{{ host.pk }}" {% if host.pk in s_hosts %}selected{% endif %}>
-                                {{ host.username }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                {% for host in hosts %}
+                    <option value="{{ host.pk }}" {% if host.pk in s_hosts %}selected{% endif %}>
+                        {{ host.username }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
 
                 <div class="form-group">
                     <button type="submit" class="search-button">검색하기</button>
                 </div>
             </div>
-        </form>
+    </form>
     </div>
 
     <!-- 검색 결과 -->
     <div class="search-results">
         <h3>검색 결과 ({{ products.paginator.count }}개)</h3>
 
-        {% if products %}
+    {% if products %}
             <div class="products-grid">
-                {% for product in products %}
+        {% for product in products %}
                     <div class="product-card">
                         <div class="product-image">
                             {% if product.image %}
@@ -112,37 +112,37 @@
                             </div>
                         </div>
                     </div>
-                {% endfor %}
+        {% endfor %}
             </div>
 
-            <!-- 페이지 네비게이션 -->
+        <!-- 페이지 네비게이션 -->
             {% if products.paginator.num_pages > 1 %}
                 <div class="pagination-container">
-                    <div class="pagination">
-                        {% if products.has_previous %}
+        <div class="pagination">
+                {% if products.has_previous %}
                             <a href="?page=1{% if name %}&name={{ name }}{% endif %}{% if s_category %}&category={{ s_category }}{% endif %}{% if s_ColorCategories %}&ColorCategory={{ s_ColorCategories.0 }}{% endif %}{% if price %}&price={{ price }}{% endif %}{% if s_hosts %}&hosts={{ s_hosts.0 }}{% endif %}" class="page-link">&laquo; 첫페이지</a>
                             <a href="?page={{ products.previous_page_number }}{% if name %}&name={{ name }}{% endif %}{% if s_category %}&category={{ s_category }}{% endif %}{% if s_ColorCategories %}&ColorCategory={{ s_ColorCategories.0 }}{% endif %}{% if price %}&price={{ price }}{% endif %}{% if s_hosts %}&hosts={{ s_hosts.0 }}{% endif %}" class="page-link">이전</a>
-                        {% endif %}
+                {% endif %}
 
                         <span class="current-page">
                             {{ products.number }} / {{ products.paginator.num_pages }}
-                        </span>
+                </span>
 
-                        {% if products.has_next %}
+                {% if products.has_next %}
                             <a href="?page={{ products.next_page_number }}{% if name %}&name={{ name }}{% endif %}{% if s_category %}&category={{ s_category }}{% endif %}{% if s_ColorCategories %}&ColorCategory={{ s_ColorCategories.0 }}{% endif %}{% if price %}&price={{ price }}{% endif %}{% if s_hosts %}&hosts={{ s_hosts.0 }}{% endif %}" class="page-link">다음</a>
                             <a href="?page={{ products.paginator.num_pages }}{% if name %}&name={{ name }}{% endif %}{% if s_category %}&category={{ s_category }}{% endif %}{% if s_ColorCategories %}&ColorCategory={{ s_ColorCategories.0 }}{% endif %}{% if price %}&price={{ price }}{% endif %}{% if s_hosts %}&hosts={{ s_hosts.0 }}{% endif %}" class="page-link">마지막 &raquo;</a>
-                        {% endif %}
+                {% endif %}
                     </div>
-                </div>
+        </div>
             {% endif %}
-        {% else %}
+    {% else %}
             <div class="no-results">
                 <div class="no-results-icon">🔍</div>
                 <h4>검색 결과가 없습니다</h4>
                 <p>다른 검색어나 조건으로 다시 시도해보세요.</p>
                 <a href="{% url 'shop:home' %}" class="btn-home">홈으로 돌아가기</a>
             </div>
-        {% endif %}
+    {% endif %}
     </div>
 </div>
 

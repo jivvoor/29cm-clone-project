@@ -18,10 +18,22 @@ from django.db.models import UniqueConstraint, QuerySet
 from django.http import Http404
 from django.utils.functional import cached_property
 from iamport import Iamport
+from ckeditor_uploader.fields import RichTextUploadingField
 
 
 logger = logging.getLogger(__name__)
 
+
+class AbstractCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True, db_index=True)
+    slug = models.SlugField(max_length=200, unique=True, allow_unicode=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        abstract = True
+        ordering = ['name']
 
 class Category(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -79,7 +91,7 @@ class ColorCategory(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('shop:index', args=[self.name])
+        return reverse('shop:index', args=[self.slug])
     
     class Meta:
         verbose_name_plural = 'Colorcategories'
@@ -104,8 +116,6 @@ class Product(core_models.TimeStampedModel):
         OBSOLETE = "o", "단종"
         INACTIVE = "i", "비활성화"
 
-    id = models.AutoField(primary_key=True)
-    #상품 아이디
 
     name = models.CharField(max_length=200)
 
@@ -113,20 +123,16 @@ class Product(core_models.TimeStampedModel):
     status = models.CharField(
         choices=Status.choices, default=Status.INACTIVE, max_length=1
     )
-    category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.SET_NULL)
-
-    subcategory = models.ForeignKey(SubCategory, null=True, blank=True, on_delete=models.SET_NULL)
-
     nested_subcategory = models.ForeignKey(NestedSubCategory, null=True, blank=True, on_delete=models.SET_NULL)
 
     head_image = models.ImageField(upload_to='shop/images/%Y/%m/%d/', blank=True)
 
     image = models.ImageField(upload_to='shop/images', blank=False)
 
-    size = models.ForeignKey(SizeCategory, null=True, blank=True, on_delete=models.SET_NULL)
+    colors = models.ManyToManyField(ColorCategory, related_name="products_by_color")
+    sizes = models.ManyToManyField(SizeCategory, related_name="products_by_size")
 
-    color = models.ForeignKey(ColorCategory, null=True, blank=True, on_delete=models.SET_NULL)
-
+    description = RichTextUploadingField(blank=True, null=True)
 
     host = models.ForeignKey("users.User", on_delete=models.CASCADE)
 
@@ -278,12 +284,11 @@ class OrderedProduct(models.Model):
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,
-        db_constraint=False,
+        related_name='ordered_products',
     )
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
-        db_constraint=False,
     )
     name = models.CharField(
         "상품명", max_length=100, help_text="주문 시점의 상품명을 저장합니다."
@@ -292,8 +297,26 @@ class OrderedProduct(models.Model):
         "상품가격", help_text="주문 시점의 상품가격을 저장합니다."
     )
     quantity = models.PositiveIntegerField("수량")
+    # 아래 두 필드를 추가하세요
+    selected_color = models.ForeignKey(
+        'ColorCategory',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="선택한 색상"
+    )
+    selected_size = models.ForeignKey(
+        'SizeCategory',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="선택한 사이즈"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('order', 'product')
 
 
 class AbstractPortonePayment(models.Model):
@@ -403,3 +426,18 @@ class Like(models.Model):
 
     def __str__(self):
         return f"{self.user} likes {self.product}"
+
+
+class ProductDetailImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='detail_images')
+    image = models.ImageField(upload_to='shop/detail_images/')
+    order = models.PositiveIntegerField(default=0, help_text="이미지 순서 (낮은 숫자가 먼저 표시)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['order', 'created_at']
+        verbose_name = "상품 상세 이미지"
+        verbose_name_plural = "상품 상세 이미지들"
+    
+    def __str__(self):
+        return f"{self.product.name} - 상세 이미지 {self.order + 1}"

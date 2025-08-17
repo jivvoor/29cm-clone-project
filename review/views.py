@@ -3,17 +3,32 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from .models import Review, ReviewImage
 from .forms import ReviewForm, ReviewImageForm
-from shop.models import Product
+from shop.models import Product, Order
 
 @login_required
 @require_POST
 def create_review(request, product_id):
     form = ReviewForm(request.POST)
     product = Product.objects.get(id=product_id)
+    
+    # 주문 ID를 POST 데이터에서 가져오기
+    order_id = request.POST.get('order_id')
+    order = None
+    if order_id:
+        try:
+            order = Order.objects.get(
+                id=order_id,
+                user=request.user,
+                status='confirmed'
+            )
+        except Order.DoesNotExist:
+            pass
+    
     if form.is_valid():
         review = form.save(commit=False)
         review.user = request.user
         review.product = product
+        review.order = order  # 주문 정보 추가
         review.save()
         # 이미지 여러 장 저장
         for file in request.FILES.getlist('images'):

@@ -33,6 +33,7 @@ urlpatterns = [
     path("qna/", include('qna.urls')),
     path('shopping_info/', views.shopping_info, name='shopping_info'),
     path('review/', include('review.urls')),
+    path('ckeditor/', include('ckeditor_uploader.urls')),
 ]  
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

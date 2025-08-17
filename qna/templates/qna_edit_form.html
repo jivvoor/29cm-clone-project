@@ -4,7 +4,7 @@
     <select id="qnacate" name="Qnacategory">
         {% for qnacate in QnaCategories %}
         <option value="{{ qnacate.pk }}" {% if qnacate.pk == qna.category.pk %}selected{% endif %}>
-            {{ qnacate.name }}
+            {{ qnacate.qna_name }}
         </option>
         {% endfor %}
     </select>

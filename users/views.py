@@ -253,7 +253,8 @@ def store_session_data(request):
 
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from shop.models import Order
+from shop.models import Order, OrderedProduct
+from review.models import Review
 
 @login_required
 def shopping_info(request):
@@ -264,12 +265,16 @@ def shopping_info(request):
         ordered_products = OrderedProduct.objects.filter(order=order).select_related('product')
         products = []
         for op in ordered_products:
+            # 해당 상품에 대한 리뷰 작성 여부 확인
+            has_review = Review.objects.filter(user=request.user, product=op.product, order=order).exists()
+            
             products.append({
                 'product': op.product,
                 'quantity': op.quantity,
-                'color': op.product.color.name if op.product.color else '-',
-                'size': op.product.size.name if op.product.size else '-',
+                'color': op.selected_color.name if op.selected_color else '-',
+                'size': op.selected_size.name if op.selected_size else '-',
                 'price': op.price,
+                'has_review': has_review,
                 # add more fields if needed
             })
         order_data.append({

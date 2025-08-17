@@ -1,8 +1,14 @@
 {% extends "shop/base.html" %}
+{% load static %}
 {% block page_title %}
     {{product.p_name}}
 {% endblock page_title %}
 {% block content %}
+<link rel="stylesheet" href="{% static 'css/product_detail.css' %}">
+<!-- Swiper CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+<!-- Swiper JS -->
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <h2>
     By :
     <a href="{% url 'users:user_profile' product.host.username %}">{{ product.host.username }}</a>
@@ -11,7 +17,7 @@
     {% endif %}
 </h2>
 <div class="product-detail-container">
-    <!-- 왼쪽: 이미지 -->
+    <!-- 왼쪽: 메인 이미지 (고정) -->
     <div class="product-image">
         <img src="{{ product.head_image.url }}" alt="{{ product.name }}" class="product-head-image">
     </div>
@@ -20,7 +26,6 @@
     <div class="product-info">
         <h1>{{ product.name }}</h1>
         <p class="price">{{ product.price }}원</p>
-        <p class="description">{{ product.description }}</p>
         
         <!-- 좋아요 버튼과 수 표시 -->
         <div class="like-section">
@@ -30,7 +35,7 @@
             <span id="like-count">{{ like_count }}</span>명이 좋아합니다
         </div>
         
-        <form method="post" action="{% url 'shop:add_to_cart' product.id %}">
+        <form method="post" action="{% url 'cart:add_cart' product.id %}">
                 {% csrf_token %}
         
                 <!-- 사이즈 선택 -->
@@ -60,6 +65,8 @@
                 <button type="submit" formaction="{% url 'shop:direct_purchase' product.id %}" class="btn btn-success">바로 구매하기</button>
             </form>
         </div>
+        
+
         
         <script>
             var IMP = window.IMP; 
@@ -137,7 +144,32 @@
     
 
     </div>
-</div>
+
+
+    <!-- 상품 상세 이미지 Swiper 섹션 -->
+    {% if product.detail_images.all %}
+    <div class="product-detail-images-section">
+        <h3>상품 상세 정보</h3>
+        <div class="swiper detail-images-swiper">
+            <div class="swiper-wrapper">
+                {% for detail_image in product.detail_images.all %}
+                <div class="swiper-slide">
+                    <img src="{{ detail_image.image.url }}" alt="{{ product.name }} - 상세 이미지 {{ forloop.counter }}" class="detail-image">
+                </div>
+                {% endfor %}
+            </div>
+            <!-- 네비게이션 화살표 -->
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+            <!-- 페이지네이션 -->
+            <div class="swiper-pagination"></div>
+        </div>
+    </div>
+    {% endif %}
+
+</div> 
+
+
 
 <script>
     function toggleLike(productId) {
@@ -164,10 +196,84 @@
         .catch(error => console.error('Error:', error));
     }
 </script>
+    <!-- Q&A 섹션 -->
     <div class="product-qna">
         <input type="hidden" id="productId" value="{{ product.id }}">
-        {% include 'qna_index.html' with qnas=qnas qna_categories=qna_categories %}  <!-- qna_categories 전달 -->
+        <h3>상품 Q&A ({{ total_qna_count }})</h3>
+        
+        <!-- 카테고리 버튼 -->
+        <div class="category-buttons">
+            <a href="?category_id=" class="{% if not selected_category_id %}selected{% endif %}">ALL</a>
+            {% for category in qna_categories %}
+                <a href="?category_id={{ category.id }}" 
+                   class="{% if category.id == selected_category_id %}selected{% endif %}">
+                    {{ category.qna_name }} ({{ category.qna_count }})
+                </a>
+            {% endfor %}
+        </div>
+
+        <!-- New QnA 링크 -->
+        <div class="qna-actions">
+            <a href="javascript:void(0);" onclick="toggleForm()" class="new-qna-btn">New QnA</a>
+        </div>
+
+        <!-- QnA 목록 -->
+        <div class="qna-list">
+            {% for qna in qnas %}
+                <div class="qna-item" id="qna-item-{{ qna.pk }}">
+                    <div class="qna-header">
+                        <a href="javascript:void(0);" onclick="toggleDetail({{ qna.pk }})" class="qna-title">
+                            [{{ qna.category.qna_name }}] 
+                            {% if qna.is_private %}비밀글입니다.{% else %}{{ qna.title }}{% endif %}
+                        </a>
+                        <div class="qna-meta">
+                            <span class="qna-writer">{{ qna.writer.name }}</span>
+                            <span class="qna-date">{{ qna.created_at|date:"Y-m-d H:i" }}</span>
+                            <span class="qna-status {% if qna.reply %}answered{% else %}pending{% endif %}">
+                                {% if qna.reply %}답변완료{% else %}답변대기{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- 질문 상세 내용이 표시될 div (초기 상태는 숨김) -->
+                    <div id="qna-detail-{{ qna.pk }}" class="qna-detail" style="display: none;"></div>
+                </div>
+            {% empty %}
+                <div class="no-qna">해당 카테고리에 게시물이 없습니다.</div>
+            {% endfor %}
+        </div>
     </div>
+
+    <script>
+        function toggleForm() {
+            const productId = document.getElementById("productId").value;
+            if (!productId) {
+                alert("product_id가 없습니다.");
+                return;
+            }
+            // 새로운 QnA 작성 페이지로 이동
+            window.location.href = `/qna/new/?product_id=${productId}`;
+        }
+
+        function toggleDetail(pk) {
+            const detailDiv = document.getElementById(`qna-detail-${pk}`);
+            
+            // 상세보기가 이미 열려있다면 닫음
+            if (detailDiv.style.display === "block") {
+                detailDiv.style.display = "none";
+                detailDiv.innerHTML = ""; // 내용을 비움
+            } else {
+                // Ajax 요청으로 qna_detail.html 가져오기
+                fetch(`/qna/${pk}/detail/`)
+                    .then(response => response.text())
+                    .then(html => {
+                        detailDiv.innerHTML = html;
+                        detailDiv.style.display = "block";
+                    })
+                    .catch(error => console.error("Error loading details:", error));
+            }
+        }
+    </script>
 
     <!-- 리뷰 리스트 출력 -->
     <div class="product-reviews">
@@ -197,135 +303,46 @@
         {% endif %}
     </div>
 
-<style>
-    .product-detail-container {
-        display: flex;
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-        gap: 40px;
-    }
-
-    .product-image {
-        flex: 1;
-        max-width: 500px;
-    }
-
-    .product-image img {
-        width: 100%;
-        height: auto;
-        border-radius: 8px;
-    }
-
-    .product-info {
-        flex: 1;
-        padding: 20px;
-    }
-
-    .product-info h1 {
-        margin-bottom: 15px;
-        color: #333;
-    }
-
-    .price {
-        font-size: 24px;
-        font-weight: bold;
-        color: #e74c3c;
-        margin-bottom: 15px;
-    }
-
-    .description {
-        color: #666;
-        line-height: 1.6;
-        margin-bottom: 20px;
-    }
-
-    .like-section {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 20px;
-        padding: 10px 0;
-    }
-
-    .like-button {
-        background: none;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        padding: 5px;
-        border-radius: 50%;
-        transition: transform 0.2s;
-    }
-
-    .like-button:hover {
-        transform: scale(1.1);
-    }
-
-    #like-count {
-        font-weight: bold;
-        color: #e74c3c;
-    }
-
-    .product-reviews {
-        margin-top: 40px;
-        padding: 20px;
-        background-color: #f8f9fa;
-        border-radius: 8px;
-    }
-
-    .product-reviews h3 {
-        margin-bottom: 20px;
-        color: #333;
-    }
-
-    .review-list {
-        list-style: none;
-        padding: 0;
-    }
-
-    .review-item {
-        background: white;
-        padding: 15px;
-        margin-bottom: 15px;
-        border-radius: 8px;
-        border: 1px solid #ddd;
-    }
-
-    .review-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-        font-size: 14px;
-        color: #666;
-    }
-
-    .review-user {
-        font-weight: bold;
-        color: #333;
-    }
-
-    .review-rating {
-        color: #ff6b35;
-        font-weight: bold;
-    }
-
-    .review-content {
-        line-height: 1.6;
-        margin-bottom: 10px;
-    }
-
-    .review-images {
-        display: flex;
-        gap: 5px;
-        flex-wrap: wrap;
-    }
-
-    .no-reviews {
-        text-align: center;
-        color: #666;
-        padding: 20px;
-    }
-</style>    
+    
+    <script>
+        // 상세 이미지 Swiper 초기화
+        {% if product.detail_images.all %}
+        const detailSwiper = new Swiper('.detail-images-swiper', {
+            // 기본 설정
+            loop: true,
+            autoplay: {
+                delay: 4000,
+                disableOnInteraction: false,
+            },
+            
+            // 네비게이션 화살표
+            navigation: {
+                nextEl: '.detail-images-swiper .swiper-button-next',
+                prevEl: '.detail-images-swiper .swiper-button-prev',
+            },
+            
+            // 페이지네이션
+            pagination: {
+                el: '.detail-images-swiper .swiper-pagination',
+                clickable: true,
+            },
+            
+            // 반응형 설정
+            breakpoints: {
+                640: {
+                    slidesPerView: 1,
+                    spaceBetween: 20,
+                },
+                768: {
+                    slidesPerView: 1,
+                    spaceBetween: 30,
+                },
+                1024: {
+                    slidesPerView: 1,
+                    spaceBetween: 40,
+                },
+            }
+        });
+        {% endif %}
+    </script>
     {% endblock content %}

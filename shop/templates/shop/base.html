@@ -92,5 +92,22 @@
     {% block content %}{% endblock content %}
     </div>
     
+    <script>
+        document.querySelectorAll('.dropdown-item').forEach(item => {
+            const firstCategory = document.getElementById('first-category'); // 첫 번째 카테고리
+            const submenu = firstCategory.querySelector('.submenu'); // 첫 번째 카테고리의 서브 메뉴
+        
+            item.addEventListener('mouseover', () => {
+                // 서브 메뉴 활성화
+                submenu.style.display = 'block';
+            });
+        
+            item.addEventListener('mouseout', () => {
+                // 서브 메뉴 비활성화
+                submenu.style.display = 'none';
+            });
+        });
+    </script>
+    
 </body>
 </html>

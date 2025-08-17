@@ -23,7 +23,7 @@
                                     <div class="order-product-info">
                                         <div class="order-product-name">{{ item.product.name }}</div>
                                         <div class="order-product-brand">브랜드: {{ item.product.host.username }}</div>
-                                        <div class="order-product-color">컬러: {{ item.color|default:'-' }}</div>
+                                        <div class="order-product-color">컬러: {{ item.selected_color.name|default:'-' }}</div>
                                         <div class="order-product-price">가격: {{ item.price|floatformat:0 }}원</div>
                                         <div class="order-product-qty">수량: {{ item.quantity }}</div>
                                     </div>
@@ -31,23 +31,35 @@
                                 <div class="order-extra">
                                     <div>배송비: <span class="free-shipping">무료배송</span></div>
                                     <div>진행상태: <span class="order-status status-{{ order_info.order.status }}">{{ order_info.order.get_status_display }}</span></div>
-                                    {% if order_info.order.status == 'delivered' %}
-                                        <form method="post" action="{% url 'shop:order_confirm' order_info.order.id %}">
+                                    
+                                    <!-- 결제 완료 상태일 때 구매 확정 버튼 표시 -->
+                                    {% if order_info.order.status == 'paid' %}
+                                        <form method="post" action="{% url 'shop:order_confirm' order_info.order.id %}" style="display: inline;">
                                             {% csrf_token %}
                                             <button type="submit" class="review-btn">구매확정</button>
                                         </form>
-                                    {% elif order_info.order.status == 'confirmed' %}
-                                        <button class="review-btn" onclick="openReviewPopup({{ item.product.id }})">리뷰 작성</button>
                                     {% endif %}
-                                    {% for item in order_info.products %}
-                                    {{ item.product }} / {{ item.product.id }}
-                                    {% endfor %}
+                                    
+                                    <!-- 배송 완료 상태일 때 구매 확정 버튼 표시 -->
+                                    {% if order_info.order.status == 'delivered' %}
+                                        <form method="post" action="{% url 'shop:order_confirm' order_info.order.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="review-btn">구매확정</button>
+                                        </form>
+                                    {% endif %}
+                                    
+                                    <!-- 구매 확정 상태이고 리뷰를 작성하지 않은 경우에만 리뷰 작성 버튼 표시 -->
+                                    {% if order_info.order.status == 'confirmed' and not item.has_review %}
+                                        <button class="review-btn" onclick="openReviewPopup({{ item.product.id }}, {{ order_info.order.id }})">리뷰 작성</button>
+                                    {% elif order_info.order.status == 'confirmed' and item.has_review %}
+                                        <span class="review-completed">리뷰 작성 완료</span>
+                                    {% endif %}
                                 </div>
                             {% endfor %}
                         </div>
                     </div>
                 </div>
-            {% endfor %}
+                {% endfor %}
         </div>
     {% else %}
         <div class="no-orders">
@@ -64,6 +76,7 @@
     <div style="background:white; padding:30px; border-radius:10px; max-width:400px; margin:auto; position:relative;">
         <form id="review-form" enctype="multipart/form-data">
             <input type="hidden" name="product_id" id="review-product-id">
+            <input type="hidden" name="order_id" id="review-order-id">
             <div style="margin-bottom:15px;">
                 <label>상품은 어떠셨나요?</label>
                 <select name="rating" id="rating-value" required>
@@ -103,10 +116,11 @@ function toggleOrderDetail(orderId) {
     }
 }
 
-function openReviewPopup(productId) {
+function openReviewPopup(productId, orderId) {
     $('#review-product-id').val(productId);
+    $('#review-order-id').val(orderId);
     $('#review-popup').css('display', 'flex');
-    console.log('openReviewPopup:', productId);
+    console.log('openReviewPopup:', productId, 'orderId:', orderId);
     // 드롭다운 별점이므로 별점 초기화 불필요
 }
 
@@ -278,6 +292,16 @@ $('#review-form').on('submit', function(e) {
 }
 .review-btn:hover {
     background: #e65100;
+}
+.review-completed {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 5px 10px;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    display: inline-block;
 }
 .no-orders {
     text-align: center;

@@ -65,6 +65,9 @@ INSTALLED_APPS = [
     'lists',
     'cart',
     'review',
+
+    'ckeditor',
+    'ckeditor_uploader',
     ]
 
 MIDDLEWARE = [
@@ -106,8 +109,15 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'myshop',
+        'USER': 'myshopuser',
+        'PASSWORD': '0408',
+        'HOST': 'localhost',
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
     }
 }
 
@@ -152,10 +162,11 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = env.str("MEDIA_ROOT", default=BASE_DIR / "mediafiles")
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
+CKEDITOR_UPLOAD_PATH = 'uploads/'
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

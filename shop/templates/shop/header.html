@@ -15,9 +15,6 @@
     <ul class="right-aligned-menu">
     {% if user.is_authenticated %}
     <div>
-        <img src="{% if user.avatar %}{{ user.avatar.url }}{% else %}/static/images/default-avatar.png{% endif %}" 
-        alt="{{ user.last_name }}" 
-        style="max-width: 100px; height: auto;">
         {{ user.name }} 님으로 로그인 성공</div>
         <li><a href="{% url "users:logout" %}" style="text-decoration: none;">Log out</a></li>
         <li><a href="{% url "users:mypage" %}" style="text-decoration: none;">My page</a></li>

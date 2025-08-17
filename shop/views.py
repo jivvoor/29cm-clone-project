@@ -48,8 +48,8 @@ from review.models import Review
 def checkout_selected(request):
     if request.method == "POST":
         selected_item_ids = request.POST.getlist("selected_items")
-        if not selected_item_ids:  # 선택된 항목이 없을 경우
-            return render(request,"shop/checkout.html") # 장바구니 페이지로 리다이렉트
+        if not selected_item_ids:
+            return redirect("shop:cart")  # 선택된 항목이 없으면 장바구니로 리다이렉트
         selected_items = CartItem.objects.filter(id__in=selected_item_ids)
 
         session_selected_items = []
@@ -66,16 +66,13 @@ def checkout_selected(request):
             })
 
         request.session["selected_items"] = session_selected_items
-        request.session["direct_purchase"] = False  # 장바구니에서 구매임을 명시
+        request.session["direct_purchase"] = False
         request.session.modified = True
-        print("DEBUG: Session Selected Items:", request.session["selected_items"])  # 세션 데이터 확인
+        print("DEBUG: Session Selected Items:", request.session["selected_items"])
 
         return redirect("shop:checkout")
     
-    # GET 요청일 경우 기본 cart.html로 리디렉션
-    print("DEBUG: GET request received, redirecting to cart")
-
-    return render(request,"shop/checkout.html")
+    return redirect("shop:cart") # GET 요청일 경우 장바구니로 리디렉션
 
 def direct_purchase(request, product_id):
     product = get_object_or_404(Product, id=product_id)
@@ -320,34 +317,32 @@ class ProductListByCategory(ListView):
     context_object_name = 'products'
 
     def get_queryset(self):
-        return Product.objects.filter(category__slug=self.kwargs['slug'])
+        return models.Product.objects.filter(nested_subcategory__parent_subcategory__category__slug=self.kwargs['slug'])
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['categories'] = Category.objects.all()
+        context['categories'] = models.Category.objects.all()
         return context
 
 class ProductListBySubCategory(ListView):
-    model = Product
+    model = models.Product
     template_name = 'shop/product_list.html'
     context_object_name = 'products'
 
     def get_queryset(self):
-            category__slug=self.kwargs['category_slug'],
-            subcategory__slug=self.kwargs['subcategory_slug']
-            return Product.objects.filter(
-                category__slug=category__slug,
-                subcategory__slug=subcategory__slug
+        return models.Product.objects.filter(
+            nested_subcategory__parent_subcategory__category__slug=self.kwargs['category_slug'],
+            nested_subcategory__parent_subcategory__slug=self.kwargs['subcategory_slug']
         )
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        subcategory = get_object_or_404(SubCategory, slug=self.kwargs['subcategory_slug'])
+        subcategory = get_object_or_404(models.SubCategory, slug=self.kwargs['subcategory_slug'])
         context['nested_subcategories'] = subcategory.nested_subcategories.all()
         return context
 
 class ProductListByNestedSubCategory(ListView):
-    model = Product
+    model = models.Product
     template_name = "shop/product_list.html"
     context_object_name = "products"
 
@@ -356,11 +351,11 @@ class ProductListByNestedSubCategory(ListView):
         subcategory_slug = self.kwargs['subcategory_slug']
         nested_subcategory_slug = self.kwargs['nested_subcategory_slug']
         
-        return Product.objects.filter(
-            category__slug=category_slug,
-            subcategory__slug=subcategory_slug,
+        return models.Product.objects.filter(
+            nested_subcategory__parent_subcategory__category__slug=category_slug,
+            nested_subcategory__parent_subcategory__slug=subcategory_slug,
             nested_subcategory__slug=nested_subcategory_slug
-        ).select_related('category', 'subcategory', 'nested_subcategory')
+        )
     
 
 class HomeView(ListView):
@@ -589,7 +584,7 @@ def order_detail(request, pk):
 @login_required
 def order_confirm(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
-    if order.status == Order.Status.DELIVERED:
+    if order.status == Order.Status.DELIVERED or order.status == Order.Status.PAID:
         order.status = Order.Status.CONFIRMED
         order.save()
     return redirect('shopping_info')

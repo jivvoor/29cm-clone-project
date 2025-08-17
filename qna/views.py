@@ -54,33 +54,55 @@ def new(request):
         return HttpResponse("product_id가 전달되지 않았습니다.")
 
     product = get_object_or_404(Product, id=product_id)
-    # 나머지 QnA 생성 로직
-    if request.method == 'POST': 
-        title = request.POST.get('title')
-        content = request.POST.get('content')
-        category_id = request.POST.get('Qnacategory')
-        is_private = request.POST.get('is_private') == 'on'
-        category = QnaCategory.objects.get(pk=category_id)
+    
+    # Ajax POST 요청 처리
+    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        try:
+            title = request.POST.get('title')
+            content = request.POST.get('content')
+            category_id = request.POST.get('Qnacategory')
+            is_private = request.POST.get('is_private') == 'on'
+            category = QnaCategory.objects.get(pk=category_id)
 
-        # QnA 생성 후 저장
-        qna = Qna(
-            title=title, 
-            content=content, 
-            writer=request.user, 
-            category=category, 
-            is_private=is_private, 
-            product=product)
-        qna.save()
-        return redirect('shop:product_detail', pk=product.id)  # 상품 상세 페이지로 리디렉션
+            # QnA 생성 후 저장
+            qna = Qna(
+                title=title, 
+                content=content, 
+                writer=request.user, 
+                category=category, 
+                is_private=is_private, 
+                product=product)
+            qna.save()
+            
+            return JsonResponse({
+                "success": True,
+                "message": "Q&A가 성공적으로 등록되었습니다.",
+                "qna_id": qna.id
+            })
+        except Exception as e:
+            return JsonResponse({
+                "success": False,
+                "message": f"Q&A 등록에 실패했습니다: {str(e)}"
+            }, status=400)
 
-    else: 
+    # GET 요청 처리 (Ajax 모달 폼 반환)
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         qna_categories = QnaCategory.objects.all()
-        context = {
+        form_html = render_to_string('qna_new.html', {
             "s_QnaCategories": [qna_id],
             "QnaCategories": qna_categories,
             "product": product,
-        }
-        return render(request, 'qna_new.html', context)
+        })
+        return HttpResponse(form_html)
+
+    # 일반 GET 요청 (전체 페이지)
+    qna_categories = QnaCategory.objects.all()
+    context = {
+        "s_QnaCategories": [qna_id],
+        "QnaCategories": qna_categories,
+        "product": product,
+    }
+    return render(request, 'qna_new.html', context)
 
 
 def detail(request, pk):
