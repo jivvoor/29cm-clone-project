@@ -1,6 +1,18 @@
-# 모든 파일과 폴더를 무시
+# Git이 무시할 파일 및 폴더 목록
+__pycache__/
+
+.env
+venv/
+env/
+
+db.sqlite3
+/media/
+/static/
+
+# 기본적으로 모든 파일과 폴더를 무시합니다.
 *
-# 포함
+
+# 다음 파일 및 폴더는 무시하지 않고 포함시킵니다.
 !.gitignore
 !models.py
 !app.py
