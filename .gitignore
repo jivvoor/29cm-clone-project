@@ -62,4 +62,5 @@ db.sqlite3
 !users/admin.py
 !users/forms.py
 !README.md
+!mediafiles/
 !mediafiles/readme-images/
