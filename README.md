@@ -87,4 +87,5 @@
 
 ### **Q&A**
 *상품별, 카테고리별 Q&A 작성*
-*(Q&A 관련 이미지가 없어 비워두었습니다.)*
+![Q&A 1](mediafiles/readme-images/qna1.png)
+![Q&A 2](mediafiles/readme-images/qna2.png)
