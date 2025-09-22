@@ -27,9 +27,49 @@ node_modules/
 build/
 dist/
 
+<<<<<<< HEAD
 # IDE/OS
 .vscode/
 .idea/
 *.swp
 *.DS_Store
 Thumbs.db
+=======
+!shop/views.py
+!shop/urls.py
+!shop/migrations/
+!shop/models.py
+!shop/admin.py
+!shop/forms.py
+
+!cart/views.py
+!cart/urls.py
+!cart/migrations/
+!cart/models.py
+!cart/admin.py
+!cart/forms.py
+
+!review/views.py
+!review/urls.py
+!review/migrations/
+!review/models.py
+!review/admin.py
+!review/forms.py
+
+!qna/views.py
+!qna/urls.py
+!qna/migrations
+!qna/models.py
+!qna/admin.py
+!qna/forms.py
+
+!users/views.py
+!users/urls.py
+!users/migrations
+!users/models.py
+!users/admin.py
+!users/forms.py
+!README.md
+!mediafiles/
+!mediafiles/readme-images/
+>>>>>>> 3d1beb5372270dbc0e641ded73af280940f33812
