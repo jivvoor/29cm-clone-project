@@ -22,6 +22,21 @@ from shop import views as shop_views
 from qna import views
 from users import views
 
+# drf-yasg for API docs
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
+schema_view = get_schema_view(
+    openapi.Info(
+        title="ShopSite API",
+        default_version='v1',
+        description="API documentation for ShopSite backend",
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
+
 urlpatterns = [
     path('', include('core.urls', namespace="core")),
     path("shop/", include('shop.urls', namespace="shop")),
@@ -34,6 +49,8 @@ urlpatterns = [
     path('shopping_info/', views.shopping_info, name='shopping_info'),
     path('review/', include('review.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]  
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

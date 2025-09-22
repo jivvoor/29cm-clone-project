@@ -13,3 +13,5 @@ sorl-thumbnail
 django-debug-toolbar==3.8.1
 black==24.3.0
 djlint==1.19.16
+djangorestframework
+drf-yasg

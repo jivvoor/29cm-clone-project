@@ -1,63 +1,35 @@
-# Git이 무시할 파일 및 폴더 목록
-__pycache__/
-
-.env
-venv/
+uploads/
 env/
 
 db.sqlite3
-/media/
-/static/
 
-# 기본적으로 모든 파일과 폴더를 무시합니다.
-*
+# Python/venv
+__pycache__/
+*.pyc
+venv/
+env/
+.env
 
-# 다음 파일 및 폴더는 무시하지 않고 포함시킵니다.
-!.gitignore
-!models.py
-!app.py
-!settings.py
-!urls.py
-!wsgi.py
-!manage.py
+# DB/미디어/정적파일
+db.sqlite3
+mediafiles/
+uploads/
+static/
 
-!shop/
-!cart/
-!review/
-!qna/
-!users/
+# 프론트엔드(예: React, Vue, 빌드산출물 등)
+*.js
+*.jsx
+*.ts
+*.tsx
+*.css
+*.map
+node_modules/
+build/
+dist/
 
-!shop/views.py
-!shop/urls.py
-!shop/migrations/
-!shop/models.py
-!shop/admin.py
-!shop/forms.py
-
-!cart/views.py
-!cart/urls.py
-!cart/migrations/
-!cart/models.py
-!cart/admin.py
-!cart/forms.py
-
-!review/views.py
-!review/urls.py
-!review/migrations/
-!review/models.py
-!review/admin.py
-!review/forms.py
-
-!qna/views.py
-!qna/urls.py
-!qna/migrations
-!qna/models.py
-!qna/admin.py
-!qna/forms.py
-
-!users/views.py
-!users/urls.py
-!users/migrations
-!users/models.py
-!users/admin.py
-!users/forms.py
+# IDE/OS
+.vscode/
+.idea/
+*.swp
+*.DS_Store
+Thumbs.db

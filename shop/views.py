@@ -173,7 +173,6 @@ def checkout(request):
         })
     return render(request,"shop/checkout.html")
 
-@csrf_exempt
 @login_required
 def toggle_like(request, product_id):
     product = get_object_or_404(Product, id=product_id)
@@ -410,7 +409,6 @@ def order_list(request):
     pass
 
 
-@csrf_exempt
 @login_required
 def order_new(request):
     if request.method == 'POST':

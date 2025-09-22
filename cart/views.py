@@ -118,7 +118,6 @@ def delete_selected_items(request):
         CartItem.objects.filter(id__in=selected_ids).delete()
         return redirect("cart:cart_detail")
     
-@csrf_exempt
 def update_quantity(request):
     if request.method == "POST":
         cart_item_id = request.POST.get("cart_item_id")
@@ -134,15 +133,4 @@ def update_quantity(request):
         else:
             return JsonResponse({"status": "error", "message": "Invalid quantity."}, status=400)
 
-@csrf_exempt
 def delete_item(request):
-    if request.method == "POST":
-        cart_item_id = request.POST.get("cart_item_id")
-        
-        # CartItem 조회 및 삭제
-        cart_item = get_object_or_404(CartItem, id=cart_item_id)
-        cart_item.delete()
-        
-        return JsonResponse({"status": "success", "message": "상품이 삭제되었습니다."})
-    else:
-        return JsonResponse({"status": "error", "message": "잘못된 요청입니다."}, status=400)

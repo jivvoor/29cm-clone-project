@@ -4,11 +4,17 @@ from . import views
 from django.contrib import admin
 from django.conf.urls.static import static
 from shop import views as shop_views
+from rest_framework import routers
+from .api import CategoryViewSet, SubCategoryViewSet
+
 app_name = "shop"
+
+router = routers.DefaultRouter()
+router.register(r'api/categories', CategoryViewSet)
+router.register(r'api/subcategories', SubCategoryViewSet)
+
 urlpatterns = [
-    # path("", shop_views.all_products)
     path("", shop_views.HomeView.as_view(), name="home"),
-    # path("shop/", include("shop.urls", namespace="shop")),
     path("<int:pk>", shop_views.ProductDetail.as_view(), name="product_detail"),
     path("search/", views.search, name="search"),
     path('category/<slug:slug>/', shop_views.ProductListByCategory.as_view(), name='product_category'),
@@ -26,6 +32,7 @@ urlpatterns = [
     path('order/new/', views.order_new, name='order_new'),
     path('order/<int:order_id>/confirm/', views.order_confirm, name='order_confirm'),
     path('review/', include('review.urls')),
+    path('', include(router.urls)),
 ]
 
 if settings.DEBUG:
