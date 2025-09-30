@@ -13,36 +13,52 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 
-import environ
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# django-environ
-env = environ.Env()
-
-env_path = BASE_DIR / ".env"
-if env_path.exists():
-    with env_path.open("rt", encoding="utf8") as f:
-        env.read_env(f)
+# Try to import environ, but don't fail if it's not installed
+try:
+    import environ
+    env = environ.Env()
+    env_path = BASE_DIR / ".env"
+    if env_path.exists():
+        with env_path.open("rt", encoding="utf8") as f:
+            env.read_env(f)
+except ImportError:
+    # Fallback for when django-environ is not installed
+    class MockEnv:
+        def str(self, key, default=''):
+            return os.environ.get(key, default)
+        def bool(self, key, default=False):
+            return os.environ.get(key, str(default)).lower() in ('true', '1', 'yes')
+        def list(self, key, default=None):
+            if default is None:
+                default = []
+            value = os.environ.get(key, '')
+            return [item.strip() for item in value.split(',') if item.strip()] if value else default
+        def db(self):
+            return {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+    env = MockEnv()
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env.str('SECRET_KEY')
+SECRET_KEY = env.str('SECRET_KEY', default='django-insecure-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool('DEBUG', default=False)
+DEBUG = env.bool('DEBUG', default=True)
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "uploads")
 MEDIA_URL = "/media/"
-# Application definition
 
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.sites',
@@ -50,213 +66,37 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-
     'django.contrib.staticfiles',
-    'shop',
+    
+    # Third party apps
+    'drf_yasg',
+    'rest_framework',
+    'django_filters',
+    'corsheaders',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.naver',
     'allauth.socialaccount.providers.kakao',
+    'ckeditor',
+    'ckeditor_uploader',
     
+    # Local apps
+    'shop',
     'users',
     'qna',
     'lists',
     'cart',
     'review',
-
-    'ckeditor',
-    'ckeditor_uploader',
-        'rest_framework',
-    ]
+]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-
-    'allauth.account.middleware.AccountMiddleware',    
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
-
-ROOT_URLCONF = 'config.urls'
-
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-                'shop.context_processors.categories_processor',
-            ],
-        },
-    },
-]
-
-WSGI_APPLICATION = 'config.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
-DATABASES = {
-    'default': env.db(),
-}
-
-
-# Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
-
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.0/topics/i18n/
-
-LANGUAGE_CODE = 'ko-kr'
-
-TIME_ZONE = 'Asia/Seoul'
-
-USE_I18N = True
-
-USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.1/howto/static-files/
-
-STATIC_URL = "static/"
-STATIC_ROOT = env.str("STATIC_ROOT", default=BASE_DIR / "staticfiles")
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
-
-MEDIA_URL = "/media/"
-MEDIA_ROOT = env.str("MEDIA_ROOT", default=BASE_DIR / "mediafiles")
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
-CKEDITOR_UPLOAD_PATH = 'uploads/'
-
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# django-debug-toolbar
-
-INTERNAL_IPS = env.list("INTERNAL_IPS", default=["127.0.0.1"])
-
-# 포트원
-PORTONE_PG_PROVIDER = env.str("PORTONE_PG_PROVIDER", default="")
-PORTONE_SHOP_ID = env.str("PORTONE_SHOP_ID", default="")
-
-PORTONE_PG = PORTONE_PG_PROVIDER
-PORTONE_API_KEY = env.str("PORTONE_API_KEY", default="")
-PORTONE_API_SECRET = env.str("PORTONE_API_SECRET", default="")
-IMP_KEY = env.str("IMP_KEY", default="")
-IMP_SECRET_KEY = env.str("IMP_SECRET_KEY", default="")
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-
-AUTH_USER_MODEL = "users.User"
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-AUTHENTICATION_BACKENDS = (
-    # 'allauth' specific authentication methods, such as login by e-mail
-   'allauth.account.auth_backends.AuthenticationBackend',
-
-   'django.contrib.auth.backends.ModelBackend',
-)
-
-SITE_ID = 1
-
-
-LOGOUT_REDIRECT_URL = "/"
-LOGIN_REDIRECT_URL = '/'
-
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': [
-            'profile',
-            'email',
-        ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
-            }
-    }
-}
-
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 1209600  # 2주 동안 세션 유지
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
-SESSION_SAVE_EVERY_REQUEST = True
-
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = ["*"]
-
-MEDIA_ROOT = os.path.join(BASE_DIR, "uploads")
-MEDIA_URL = "/media/"
-# Application definition
-
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.sites',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-
-    'django.contrib.staticfiles',
-    'shop',
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-
-    'allauth.socialaccount.providers.google',
-    'allauth.socialaccount.providers.naver',
-    'allauth.socialaccount.providers.kakao',
-    
-    'users',
-    'qna',
-    'lists',
-    'cart',
-    'review',
-
-    'ckeditor',
-    'ckeditor_uploader',
-    ]
-
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-
     'allauth.account.middleware.AccountMiddleware',    
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -290,17 +130,16 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'myshop',
-        'USER': 'myshopuser',
-        'PASSWORD': '0408',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        }
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# Use MySQL if DB_URL is provided
+if env.str('DB_URL', default=''):
+    DATABASES = {
+        'default': env.db()
+    }
 
 
 # Password validation
@@ -345,44 +184,43 @@ STATICFILES_DIRS = [
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = env.str("MEDIA_ROOT", default=BASE_DIR / "mediafiles")
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
-CKEDITOR_UPLOAD_PATH = 'uploads/'
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# django-debug-toolbar
+# CKEditor
+CKEDITOR_UPLOAD_PATH = 'uploads/'
 
+# Django Debug Toolbar
 INTERNAL_IPS = env.list("INTERNAL_IPS", default=["127.0.0.1"])
 
-# 포트원
+# Portone Payment Settings
 PORTONE_PG_PROVIDER = env.str("PORTONE_PG_PROVIDER", default="")
 PORTONE_SHOP_ID = env.str("PORTONE_SHOP_ID", default="")
-
 PORTONE_PG = PORTONE_PG_PROVIDER
 PORTONE_API_KEY = env.str("PORTONE_API_KEY", default="")
 PORTONE_API_SECRET = env.str("PORTONE_API_SECRET", default="")
+IMP_KEY = env.str("IMP_KEY", default="")
+IMP_SECRET_KEY = env.str("IMP_SECRET_KEY", default="")
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-
+# Custom User Model
 AUTH_USER_MODEL = "users.User"
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
+# Authentication Backends
 AUTHENTICATION_BACKENDS = (
-    # 'allauth' specific authentication methods, such as login by e-mail
-   'allauth.account.auth_backends.AuthenticationBackend',
-
-   'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+    'django.contrib.auth.backends.ModelBackend',
 )
 
 SITE_ID = 1
 
-
+# Redirect URLs
 LOGOUT_REDIRECT_URL = "/"
 LOGIN_REDIRECT_URL = '/'
 
+# Social Account Providers
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': [
@@ -395,10 +233,37 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+# Session Settings
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 1209600  # 2주 동안 세션 유지
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_SAVE_EVERY_REQUEST = True
 
-IMP_KEY: "7858823464676216"
-IMP_SECRET_KEY: "Uv8R4MCeHQv0GINLD9yVxm8v2pmNffuwu8mjPfi3mkYYrk9bFMF69U2cQzYibCiWK8XVag55H24ghMKB"
+# Django REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+}
+
+# CORS Settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+# Django Filter
+DJANGO_FILTER_SETTINGS = {
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
+}

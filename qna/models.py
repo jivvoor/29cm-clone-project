@@ -33,7 +33,8 @@ class Qna(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='수정 시각')      # 수정 시 자동으로 시간 기록
     is_private = models.BooleanField(default=False)
 
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="qnas")
+    # product 필드를 nullable로 변경
+    product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.CASCADE, related_name="qnas")
 
     def __str__(self):
         return self.title

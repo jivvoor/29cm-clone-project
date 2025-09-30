@@ -6,9 +6,8 @@ iamport-rest-client
 pillow
 requests
 sorl-thumbnail
-
-
-
+django-filter
+django-cors-headers
 
 django-debug-toolbar==3.8.1
 black==24.3.0

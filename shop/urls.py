@@ -5,13 +5,20 @@ from django.contrib import admin
 from django.conf.urls.static import static
 from shop import views as shop_views
 from rest_framework import routers
-from .api import CategoryViewSet, SubCategoryViewSet
+from .api import (
+    CategoryViewSet, SubCategoryViewSet, NestedSubCategoryViewSet,
+    ProductViewSet, SizeCategoryViewSet, ColorCategoryViewSet
+)
 
 app_name = "shop"
 
 router = routers.DefaultRouter()
 router.register(r'api/categories', CategoryViewSet)
 router.register(r'api/subcategories', SubCategoryViewSet)
+router.register(r'api/nested-subcategories', NestedSubCategoryViewSet)
+router.register(r'api/products', ProductViewSet)
+router.register(r'api/sizes', SizeCategoryViewSet)
+router.register(r'api/colors', ColorCategoryViewSet)
 
 urlpatterns = [
     path("", shop_views.HomeView.as_view(), name="home"),

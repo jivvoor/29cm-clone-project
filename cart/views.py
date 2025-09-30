@@ -21,10 +21,14 @@ def _cart_id(request):
 def add_cart(request, product_id):
     # 해당 product_id로 제품을 가져옴
     product = get_object_or_404(Product, id=product_id)
-    user = request.user
-
-    # 현재 유저의 Cart 가져오기 또는 생성
-    cart, created = Cart.objects.get_or_create(user=user)
+    
+    # 로그인한 사용자와 비로그인 사용자 모두 처리
+    if request.user.is_authenticated:
+        # 로그인한 사용자의 경우 user 기반으로 Cart 생성
+        cart, created = Cart.objects.get_or_create(user=request.user)
+    else:
+        # 비로그인 사용자의 경우 세션 기반으로 Cart 생성
+        cart, created = Cart.objects.get_or_create(cart_id=_cart_id(request))
 
     if request.method == "POST":
         # POST 데이터 처리
@@ -64,21 +68,32 @@ def add_cart(request, product_id):
 
 def minus_cart(request, product_id):
     # 해당 product_id로 제품을 가져옴
-    product = Product.objects.get(id=product_id)
+    product = get_object_or_404(Product, id=product_id)
     
-    # 현재 세션의 cart_id를 가져오고, 중복을 방지하기 위해 get_or_create를 사용
-    cart, created = Cart.objects.get_or_create(cart_id=_cart_id(request))
-    
-    # CartItem을 업데이트하거나 새로 생성
-    cart_item, created = CartItem.objects.get_or_create(
-        product=product,
-        cart=cart,
-        defaults={'quantity': 1}
-    )
-    if not created:
-        # 이미 존재하는 경우 수량을 증가시킴
-        cart_item.quantity -= 1
-        cart_item.save()
+    try:
+        # 로그인한 사용자와 비로그인 사용자 모두 처리
+        if request.user.is_authenticated:
+            # 로그인한 사용자의 경우 user 기반으로 Cart 가져오기
+            cart = Cart.objects.get(user=request.user)
+        else:
+            # 비로그인 사용자의 경우 세션 기반으로 Cart 가져오기
+            cart = Cart.objects.get(cart_id=_cart_id(request))
+        
+        # CartItem을 업데이트하거나 새로 생성
+        cart_item, created = CartItem.objects.get_or_create(
+            product=product,
+            cart=cart,
+            defaults={'quantity': 1}
+        )
+        if not created:
+            # 이미 존재하는 경우 수량을 감소시킴
+            if cart_item.quantity > 1:
+                cart_item.quantity -= 1
+                cart_item.save()
+            else:
+                cart_item.delete()
+    except Cart.DoesNotExist:
+        pass  # Cart가 존재하지 않으면 아무것도 하지 않음
 
     return redirect('cart:cart_detail')
 
@@ -115,7 +130,21 @@ def cart_detail(request):
 def delete_selected_items(request):
     if request.method == "POST":
         selected_ids = request.POST.getlist("selected_items")
-        CartItem.objects.filter(id__in=selected_ids).delete()
+        
+        # 사용자가 접근할 수 있는 CartItem만 필터링
+        if request.user.is_authenticated:
+            # 로그인한 사용자의 경우 user 기반으로 필터링
+            CartItem.objects.filter(
+                id__in=selected_ids,
+                cart__user=request.user
+            ).delete()
+        else:
+            # 비로그인 사용자의 경우 세션 기반으로 필터링
+            CartItem.objects.filter(
+                id__in=selected_ids,
+                cart__cart_id=_cart_id(request)
+            ).delete()
+        
         return redirect("cart:cart_detail")
     
 def update_quantity(request):
@@ -123,14 +152,52 @@ def update_quantity(request):
         cart_item_id = request.POST.get("cart_item_id")
         quantity = int(request.POST.get("quantity"))
 
-        # CartItem 조회 및 수량 업데이트
-        cart_item = get_object_or_404(CartItem, id=cart_item_id)
+        try:
+            # CartItem 조회
+            cart_item = get_object_or_404(CartItem, id=cart_item_id)
+            
+            # 사용자가 해당 CartItem에 접근 권한이 있는지 확인
+            if request.user.is_authenticated:
+                # 로그인한 사용자의 경우 user 기반으로 확인
+                if cart_item.cart.user != request.user:
+                    return JsonResponse({"status": "error", "message": "Access denied."}, status=403)
+            else:
+                # 비로그인 사용자의 경우 세션 기반으로 확인
+                if cart_item.cart.cart_id != _cart_id(request):
+                    return JsonResponse({"status": "error", "message": "Access denied."}, status=403)
 
-        if quantity > 0:
-            cart_item.quantity = quantity
-            cart_item.save()
-            return JsonResponse({"status": "success", "quantity": cart_item.quantity})
-        else:
-            return JsonResponse({"status": "error", "message": "Invalid quantity."}, status=400)
+            if quantity > 0:
+                cart_item.quantity = quantity
+                cart_item.save()
+                return JsonResponse({"status": "success", "quantity": cart_item.quantity})
+            else:
+                return JsonResponse({"status": "error", "message": "Invalid quantity."}, status=400)
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": "An error occurred."}, status=500)
 
 def delete_item(request):
+    if request.method == "POST":
+        cart_item_id = request.POST.get("cart_item_id")
+        
+        try:
+            # CartItem 조회
+            cart_item = get_object_or_404(CartItem, id=cart_item_id)
+            
+            # 사용자가 해당 CartItem에 접근 권한이 있는지 확인
+            if request.user.is_authenticated:
+                # 로그인한 사용자의 경우 user 기반으로 확인
+                if cart_item.cart.user != request.user:
+                    return JsonResponse({"status": "error", "message": "Access denied."}, status=403)
+            else:
+                # 비로그인 사용자의 경우 세션 기반으로 확인
+                if cart_item.cart.cart_id != _cart_id(request):
+                    return JsonResponse({"status": "error", "message": "Access denied."}, status=403)
+            
+            # CartItem 삭제
+            cart_item.delete()
+            return JsonResponse({"status": "success", "message": "Item deleted successfully."})
+            
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": "An error occurred."}, status=500)
+    
+    return JsonResponse({"status": "error", "message": "Invalid request method."}, status=405)

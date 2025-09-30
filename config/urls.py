@@ -31,10 +31,38 @@ schema_view = get_schema_view(
     openapi.Info(
         title="ShopSite API",
         default_version='v1',
-        description="API documentation for ShopSite backend",
+        description="""
+        # ShopSite API Documentation
+        
+        Django 기반 이커머스 플랫폼 API 문서입니다.
+        
+        ## 주요 기능
+        - 상품 관리 및 검색
+        - 사용자 인증 (소셜 로그인 지원)
+        - 장바구니 관리
+        - 주문 및 결제
+        - Q&A 및 리뷰 시스템
+        
+        ## 인증
+        - 소셜 로그인: Google, Naver, Kakao
+        - JWT 토큰 기반 인증
+        
+        ## 결제
+        - 포트원(Portone) PG 연동
+        """,
+        terms_of_service="https://www.google.com/policies/terms/",
+        contact=openapi.Contact(email="contact@shopsite.local"),
+        license=openapi.License(name="MIT License"),
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
+    patterns=[
+        path('shop/', include('shop.urls')),
+        path('users/', include('users.urls')),
+        path('cart/', include('cart.urls')),
+        path('review/', include('review.urls')),
+        path('qna/', include('qna.urls')),
+    ],
 )
 
 urlpatterns = [

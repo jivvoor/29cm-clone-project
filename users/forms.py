@@ -25,89 +25,48 @@ class LoginForm(forms.Form):
         except models.User.DoesNotExist:
             self.add_error("email", forms.ValidationError("User does not exist"))
 
-class SignUpForm(forms.Form):
-    name = forms.CharField(max_length=10)
-    email = forms.EmailField()
-    tel = forms.CharField()
-    birthday = forms.DateField()
-    postcode = forms.CharField(max_length=20)
-    address = forms.CharField(max_length=255 )
-    detail_address = forms.CharField(max_length=255)
-    extra_address = forms.CharField(max_length=255)
-    password = forms.CharField(widget=forms.PasswordInput) # 👈 Password로 템플릿에 필드가 표시됩니다.
-    password1 = forms.CharField(widget=forms.PasswordInput, label="Confirm Password") # 👈 label값으로 템플릿에 필드가 표시됩니다.
-
-# email이 이미 등록되었는지에 대한 validation
-    def clean_email(self):
-        email = self.cleaned_data.get("email") # 👈 필드의 입력값 가져오기
-        try:
-            models.User.objects.get(email=email) # 👈 필드의 email값이 DB에 존재하는지 확인
-            raise forms.ValidationError("User already exists with that email")
-        except models.User.DoesNotExist:
-            return email  # 👈 존재하지 않는다면, 데이터를 반환시킵니다.
-    # 두개의 password가 일치한지에 대한 validation
-    def clean_password1(self):
-        password = self.cleaned_data.get("password") # 👈 필드의 입력값 가져오기
-        password1 = self.cleaned_data.get("password1") # 👈 필드의 입력값 가져오기
-        if password != password1:
-            raise forms.ValidationError("Password confirmation does not match")
-        else:
-            return password
-    # save 매서드로 DB에 저장
-    def save(self):
-        name = self.cleaned_data.get("name")
-        email = self.cleaned_data.get("email")
-        tel = self.cleaned_data.get("tel")
-        birthday = self.cleaned_data.get("birthday", null=True)
-        postcode = self.cleaned_data.get("postcode")
-        address = forms.CharField(max_length=255, blank=True, null=True)
-        detail_address = forms.CharField(max_length=255, blank=True, null=True)
-        extra_address = forms.CharField(max_length=255, blank=True, null=True)
-        password = self.cleaned_data.get("password")
-        # create_user()에 id(email), email(email), password(password) 값을 순서대로 넣어줘요!
-        user = models.User.objects.create_user(email, email, password)
-        user.name = name
-        user.tel = tel
-        user.birthday = birthday
-        user.postcode = postcode
-        user.address = address
-        user.detail_address = detail_address
-        user.extra_address = extra_address
-        user.save()       
-
-class SignUpForm(forms.ModelForm): # 👈 ModelForm을 상속하면 Model을 활용할 수 있어요!
-    email = forms.EmailField(
-        widget=forms.EmailInput(attrs={
-            'class': 'emailform-control',  # CSS 클래스 추가
-            'placeholder': 'abc@email.com',  # 선택적으로 placeholder 추가
-        }),
-        label="이메일(아이디)"  # 라벨도 명시적으로 지정
-    )
+class SignUpForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput(attrs={
+        'class': 'form-control',
+    }), label="비밀번호")
+    password1 = forms.CharField(widget=forms.PasswordInput(attrs={
+        'class': 'form-control',
+    }), label="비밀번호 확인")
 
     class Meta:
         model = models.User
-        fields = ("email",)
+        fields = ['name', 'email', 'tel', 'birthday', 'postcode', 'address', 'detail_address', 'extra_address']
+        labels = {
+            'name': '이름',
+            'email': '이메일(아이디)',
+            'tel': '연락처',
+            'birthday': '생년월일',
+            'postcode': '우편번호',
+            'address': '주소',
+            'detail_address': '상세주소',
+            'extra_address': '참고항목',
+        }
 
-    password = forms.CharField(widget=forms.PasswordInput(attrs={
-        'class': 'form-control',
-    }))
-    password1 = forms.CharField(widget=forms.PasswordInput(attrs={
-        'class': 'form-control',
-    }), label="Confirm Password")
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if models.User.objects.filter(email=email).exists():
+            raise forms.ValidationError("이미 사용중인 이메일입니다.")
+        return email
+
     def clean_password1(self):
         password = self.cleaned_data.get("password")
         password1 = self.cleaned_data.get("password1")
-        if password != password1:
-            raise forms.ValidationError("Password confirmation does not match")
+        if password and password1 and password != password1:
+            raise forms.ValidationError("비밀번호가 일치하지 않습니다.")
         else:
-            return password    
-    def save(self, *args, **kwargs): # 👈 save 매서드 가로채기
-        user = super().save(commit=False) # 👈 Object는 생성하지만, 저장은 하지 않습니다.
-        email = self.cleaned_data.get("email")
-        password = self.cleaned_data.get("password")
-        user.username = email
-        user.set_password(password) # 👈 set_password는 비밀번호를 해쉬값으로 변환해요!
-        user.save() # 👈 이제 저장해줄께요:) 
+            return password
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data.get("password"))
+        if commit:
+            user.save()
+        return user
 
 class CustomUserChangeForm(UserChangeForm):
     class Meta(UserChangeForm.Meta):

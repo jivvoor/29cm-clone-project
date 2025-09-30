@@ -10,16 +10,32 @@
 <!-- Swiper JS -->
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <h2>
-    By :
+
     <a href="{% url 'users:user_profile' product.host.username %}">{{ product.host.username }}</a>
     {% if product.host.superhost %}
         (superhost)
     {% endif %}
 </h2>
 <div class="product-detail-container">
-    <!-- 왼쪽: 메인 이미지 (고정) -->
+    <!-- 왼쪽: 메인 이미지 (Swiper로 변경) -->
     <div class="product-image">
-        <img src="{{ product.head_image.url }}" alt="{{ product.name }}" class="product-head-image">
+        <div class="swiper product-image-swiper">
+            <div class="swiper-wrapper">
+                <div class="swiper-slide">
+                    <img src="{{ product.head_image.url }}" alt="{{ product.name }}" class="product-head-image">
+                </div>
+                {% for detail_image in product.detail_images.all %}
+                <div class="swiper-slide">
+                    <img src="{{ detail_image.image.url }}" alt="{{ product.name }} - 상세 이미지 {{ forloop.counter }}" class="detail-image">
+                </div>
+                {% endfor %}
+            </div>
+            <!-- 네비게이션 화살표 -->
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+            <!-- 페이지네이션 -->
+            <div class="swiper-pagination"></div>
+        </div>
     </div>
     
     <!-- 오른쪽: 상품 정보 -->
@@ -146,26 +162,7 @@
     </div>
 
 
-    <!-- 상품 상세 이미지 Swiper 섹션 -->
-    {% if product.detail_images.all %}
-    <div class="product-detail-images-section">
-        <h3>상품 상세 정보</h3>
-        <div class="swiper detail-images-swiper">
-            <div class="swiper-wrapper">
-                {% for detail_image in product.detail_images.all %}
-                <div class="swiper-slide">
-                    <img src="{{ detail_image.image.url }}" alt="{{ product.name }} - 상세 이미지 {{ forloop.counter }}" class="detail-image">
-                </div>
-                {% endfor %}
-            </div>
-            <!-- 네비게이션 화살표 -->
-            <div class="swiper-button-next"></div>
-            <div class="swiper-button-prev"></div>
-            <!-- 페이지네이션 -->
-            <div class="swiper-pagination"></div>
-        </div>
-    </div>
-    {% endif %}
+    
 
 </div> 
 
@@ -305,44 +302,23 @@
 
     
     <script>
-        // 상세 이미지 Swiper 초기화
-        {% if product.detail_images.all %}
-        const detailSwiper = new Swiper('.detail-images-swiper', {
-            // 기본 설정
+        // 메인 이미지 Swiper 초기화 (헤드 + 상세 이미지)
+        const productImageSwiper = new Swiper('.product-image-swiper', {
             loop: true,
             autoplay: {
                 delay: 4000,
                 disableOnInteraction: false,
             },
-            
-            // 네비게이션 화살표
             navigation: {
-                nextEl: '.detail-images-swiper .swiper-button-next',
-                prevEl: '.detail-images-swiper .swiper-button-prev',
+                nextEl: '.product-image-swiper .swiper-button-next',
+                prevEl: '.product-image-swiper .swiper-button-prev',
             },
-            
-            // 페이지네이션
             pagination: {
-                el: '.detail-images-swiper .swiper-pagination',
+                el: '.product-image-swiper .swiper-pagination',
                 clickable: true,
             },
-            
-            // 반응형 설정
-            breakpoints: {
-                640: {
-                    slidesPerView: 1,
-                    spaceBetween: 20,
-                },
-                768: {
-                    slidesPerView: 1,
-                    spaceBetween: 30,
-                },
-                1024: {
-                    slidesPerView: 1,
-                    spaceBetween: 40,
-                },
-            }
+            slidesPerView: 1,
+            spaceBetween: 0,
         });
-        {% endif %}
     </script>
     {% endblock content %}
