@@ -5,7 +5,7 @@
 - **프로젝트명**: Django 기반 29cm 클론 코딩 프로젝트
 - **개발 기간**: 2024.05 ~ 2024.06
 - **참고 사이트**: [29cm](https://29cm.co.kr/)
-- **GitHub**: [https://github.com/jivvoor/shopsite-backend.git](https://github.com/jivvoor/shopsite-backend.git)
+- **GitHub**: [https://github.com/jivvoor/29cm-clone-project.git](https://github.com/jivvoor/29cm-clone-project.git)
 
 ---
 
