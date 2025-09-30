@@ -12,7 +12,7 @@
 - **프로젝트명**: ShopSite - Django 이커머스 플랫폼
 - **개발 기간**: 2024.05 ~ 2024.06
 - **참고 사이트**: [29cm](https://29cm.co.kr/)
-- **GitHub**: [https://github.com/jivvoor/shopsite-backend.git](https://github.com/jivvoor/shopsite-backend.git)
+- **GitHub**: [https://github.com/jivvoor/29cm-clone-project.git](https://github.com/jivvoor/29cm-clone-project.git)
 
 ### 🎯 프로젝트 목표
 - Django의 핵심 기능을 활용한 실무 수준의 이커머스 플랫폼 구현
